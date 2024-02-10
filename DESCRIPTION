@@ -1,0 +1,14 @@
+Package: tpSuite
+Type: Package
+Title: Technical Pricing Suite
+Version: 0.1.0
+Author: Allianz Benelux
+Maintainer: Robin Van Oirbeek <robin.van_oirbeek@allianz.be>
+Description: A collection of functions to visualize spatial data, spline effects of GAM models and how to perform binning of categorical variables for GLM models
+License: GPL-3
+Encoding: UTF-8
+LazyData: true
+Imports: data.table(>= 1.12.0), devFunc, R2DT, stringr, mgcv, rpart,
+        rpart.utils, ggplot2, cluster, rgdal, dplyr, classInt
+NeedsCompilation: no
+Packaged: 2019-10-31 12:04:46 UTC; XRVRBK
