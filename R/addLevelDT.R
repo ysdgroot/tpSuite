@@ -1,4 +1,8 @@
-addLevelDT <- function(inputDT, catVar, newLevel){
+#TODO: document
+#TODO function is not even used...
+addLevelDT <- function(inputDT, 
+                       catVar, 
+                       newLevel){
   
   checkCharVec(list(catVar, newLevel))
   checkLength(list(catVar, newLevel), 1)

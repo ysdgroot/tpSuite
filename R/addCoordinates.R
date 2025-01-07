@@ -1,4 +1,6 @@
-
+#TODO: give a column name with the postal code 
+#TODO: don't use the "LAT or LONG" column names
+#TODO: give the table with the postal codes with lat and long
 
 #' Adding the longitude and latitude coordinate to the input data set when the (Belgian) postal code is known
 #'

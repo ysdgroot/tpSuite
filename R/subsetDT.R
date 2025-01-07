@@ -1,10 +1,18 @@
 #' Selecting a subset of a single column, selected by its numeric index, of a data.table object, optionally subsetted by some value
 #'
 #' @param inputDT data.table object containing the data of interest. This is an obligatory argument, without default value.
-#' @param rowValue Vector of length 1 that contains the row value of the selected column that should be selected. This is an optional argument, with NULL as default value (in which case all rows are selected).
-#' @param colNbr Integer or numeric vector of length 1 that contains the column number of the 'inputDT' object that is selected. This is an obligatory argument, without default value.
-#' @param missingsColNbrGone Logical vector of length 1 indicating whether or not one wants to remove the missing values of the selected column. The default value is TRUE and this is an optimal argument only.
-#' @return The subset of the 'inputDT' data.table object. If a non-existant value is chosen for the selected column, an empty data.table object is returned.
+#' @param rowValue Vector of length 1 
+#' that contains the row value of the selected column that should be selected. 
+#' This is an optional argument, with NULL as default value (in which case all rows are selected).
+#' @param colNbr Integer or numeric vector of length 1 
+#' that contains the column number of the 'inputDT' object that is selected. 
+#' This is an obligatory argument, without default value.
+#' @param missingsColNbrGone Logical vector of length 1 
+#' indicating whether or not one wants to remove the missing values of the selected column. 
+#' The default value is TRUE and this is an optimal argument only.
+#' @return The subset of the 'inputDT' data.table object. 
+#' If a non-existent value is chosen for the selected column, 
+#' an empty data.table object is returned.
 #' @examples
 #' library(data.table)
 #' inputDT <- as.data.table(data.frame(x = 10:1, y = LETTERS[1:10]))
@@ -12,7 +20,10 @@
 #' subsetDT(inputDT, 2, 'A')
 #' subsetDT(inputDT, 1, 'A')
 
-subsetDT <- function(inputDT, colNbr, rowValue = NULL, missingsColNbrGone = TRUE){
+subsetDT <- function(inputDT, 
+                     colNbr, 
+                     rowValue = NULL, 
+                     missingsColNbrGone = TRUE){
   checkDT(inputDT)
   if(!is.null(rowValue)){
     checkLength(list(rowValue, colNbr), c(1, 1))

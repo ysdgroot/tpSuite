@@ -1,8 +1,13 @@
-changeLevelNamesDT <- function(inputDT, categoricalVar, oldLevelName, newLevelName, dropCheck = FALSE){
+changeLevelNamesDT <- function(inputDT, 
+                               categoricalVar,
+                               oldLevelName, 
+                               newLevelName, 
+                               dropCheck = FALSE){
   
   checkCharVec(list(categoricalVar, oldLevelName, newLevelName))
   checkDT(inputDT, categoricalVar)
   checkLength(list(categoricalVar), 1)
+  
   checkEqualLength(list(oldLevelName, newLevelName))
   
   indexFactor <- which(names(inputDT) %in% categoricalVar)
@@ -12,7 +17,10 @@ changeLevelNamesDT <- function(inputDT, categoricalVar, oldLevelName, newLevelNa
   selectedFactor <- inputDT[,.SD,.SDcols = indexFactor]
   if(!dropCheck){
     for(iRun in 1:length(oldLevelName)){
-      if(!isPresentCharVec(levels(selectedFactor[[1]]), oldLevelName[iRun])) stop(sprintf("The value %s of the %dth element of the 'oldLevelName' argument does not correspond to a valid level of the 'categoricalVar' argument, %s.", oldLevelName[iRun], iRun, categoricalVar))
+      if(!isPresentCharVec(levels(selectedFactor[[1]]), oldLevelName[iRun])) {
+        stop(sprintf("The value %s of the %dth element of the 'oldLevelName' argument does not correspond to a valid level of the 'categoricalVar' argument, %s.", oldLevelName[iRun], iRun, categoricalVar))
+      }
+       
     }
   }
   levels(selectedFactor[[1]]) <- c(levels(selectedFactor[[1]]), newLevelName)
