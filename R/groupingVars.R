@@ -1,5 +1,23 @@
-#TODO: document
-
+#' Title
+#'
+#' @param var2BeGrouped 
+#' @param nGroups 
+#' @param gamFit 
+#' @param inputDT 
+#' @param splineEst 
+#' @param sampleSizeBin 
+#' @param nSamples 
+#' @param maxIter 
+#' @param xLimit 
+#' @param showPlot 
+#' @param plotDir 
+#' @param plotName 
+#' @param pdf2 
+#'
+#' @returns
+#' @export
+#'
+#' @examples
 groupingVars <- function(var2BeGrouped, 
                          nGroups, 
                          gamFit, 
@@ -31,7 +49,7 @@ groupingVars <- function(var2BeGrouped,
   checkRanges(list(sampleSizeBin), list(c('>', 1)))
   checkWholeNumb(list(nGroups, sampleSizeBin, nSamples, maxIter))
   
-  if(sum(class(gamFit) %in% c('gam', 'bam')) == 0){
+  if (!any(class(gam_model) %in% c('gam', 'bam'))){
     stop('The "gamFit" argument should be an output object of the mgcv::[g,b]am function.')
   } 
   
@@ -45,20 +63,29 @@ groupingVars <- function(var2BeGrouped,
   checkValues(list(var2BeGrouped), list(allSplineVar))
   checkValues(list(var2BeGrouped), list(names(splineEst)))
   
-  #inputSplit <- extractData4ModelFit(inputDT, var2BeGrouped, NULL, NULL)
+  #TODO: improve this -- it is not really clear what the purpose is
   inputSplit <- inputDT[as.integer(rownames(splineEst[[which(names(splineEst) == var2BeGrouped)]])), ]
   inputSplit <- inputSplit[, .SD, 
                            .SDcol = which(names(inputSplit) == var2BeGrouped)]
   names(inputSplit) <- 'x'
   
+  #TODO: mistake -- it assumes the log-link function -- not necessary
   inputSplit[, y := exp(splineEst[[which(names(splineEst) == var2BeGrouped)]])]
+
+  
   splitsTree <- binningUnivSpline(inputSplit, 
                                   nGroups, 
                                   sampleSizeBin = sampleSizeBin, 
                                   nSamples = nSamples, 
                                   maxIter = maxIter)
   
-  if(!sum(is.na(splitsTree))){
+  if (is.na(splitTree)) {
+    warning(sprintf('Variable %s could not be split into %d groups.', 
+                    var2BeGrouped, 
+                    nGroups))
+  }
+
+  if (!sum(is.na(splitsTree))) {
     #library(ggplot2)
     ggplotObject <- plotUnivSpline(gamFit, 
                                    inputDT, 
@@ -94,11 +121,8 @@ groupingVars <- function(var2BeGrouped,
                    paste(plotName, '.png', sep = ''), 
                    sep = ""))
     }
-    return(list(ggplotObject = ggplotObject, splits = splitsTree))
-  } else {
-    message <- sprintf('Variable %s could not be split into %d groups.', 
-                       var2BeGrouped, 
-                       nGroups)
-    warning(message)
-  }
+    return(list(ggplotObject = ggplotObject, 
+                splits = splitsTree))
+  } 
+  
 }

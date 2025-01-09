@@ -161,21 +161,22 @@ checkWholeNumb <- function(listNum, namesListElements = NULL){
     
   } else if(is.vector(listNum) & length(listNum) == 1){
     checkNumOrIntVec(list(listNum))
-    if(!all(listNum == round(listNum)) & !is.null(listNum)){
-      if(isObject){
-        addError(msg = paste(paste("The argument '", argNames, sep = ''), "' does NOT consist of whole numbers.", sep = ''), argcheck = checkList)
+    if (!all(listNum == round(listNum)) & !is.null(listNum)) {
+      if (isObject){
+        message <- sprintf("The argument '%s' does NOT consist of whole numbers", 
+                           argNames)
       } else {
         if(is.null(namesListElements)){
-          addError(msg = paste(paste('The element with index ', '1', sep = ''), ' does NOT consist of whole numbers.', sep = ''), argcheck = checkList)
+          message <- sprintf("The element with index 1 does NOT consist of whole numbers.")
         } else {
-          addError(msg = paste(paste("The argument '", namesListElements, sep = ''), "' does NOT consist of whole numbers.", sep = ''), argcheck = checkList)
+          message <- sprintf("The argument '%s' does NOT consist of whole numbers.")
         }
       }
+      checkList$add_error(message)
     }
   } else {
     checkList$add_error('The "listNum" argument should be of a list.')
   }
-  #finishArgCheck(checkList)
   checkList$finish()
 }
 
