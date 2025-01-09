@@ -12,3 +12,6 @@ Imports: data.table(>= 1.12.0), devFunc, R2DT, stringr, mgcv, rpart,
         rpart.utils, ggplot2, cluster, rgdal, dplyr, classInt
 NeedsCompilation: no
 Packaged: 2019-10-31 12:04:46 UTC; XRVRBK
+Suggests: 
+    testthat (>= 3.0.0)
+Config/testthat/edition: 3
