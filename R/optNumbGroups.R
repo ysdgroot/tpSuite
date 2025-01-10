@@ -1,24 +1,45 @@
-#TODO: document
-
-
+#' Find the optimal number of splits using a GAM model as a base
+#'
+#' @param inputDT data.table used for the GAM model to fit
+#' @param gamFit fitted GAM model
+#' @param splineEst list of the estimated spline models
+#' @param splineVarNames list of (continuous) variable names which should be binned. 
+#' all the names should be found in the `names(splineEst)` and in  `inputDT`  
+#' @param nGroups list of integers, 
+#' the different sizes to look for the binning. 
+#' @param sampleSizeBin integer, 
+#' sample size which should be used for the binning strategy of a tree
+#' @param minExplVar single numeric value, 
+#' what the minimum explained variance should be. 
+#' If the minimum explained variance is not met a warning will be given
+#' @param verbose logical, 
+#' if current status of the modeling should be shown 
+#' @param nSamples integer, 
+#' number of different trees that needs to be constructed to find the best splits 
+#' @param maxIter maximum number of iterations for the tree construction
+#' @param invLink function, the inverse of the link function. 
+#' Usually this is the function [exp()]
+#' 
+#' @inheritParams getBestnGroups
+#'
+#' @returns list with the explained variance and the best splits for each variable given. 
+#' @export
 optNumbGroups <- function(inputDT, 
                           gamFit, 
                           splineEst, 
                           splineVarNames, 
                           nGroups = seq(4, 10, 2), 
-                          plotDir = NULL, 
                           sampleSizeBin = min(50000, nrow(inputDT)), 
                           minIncr = 0.05, 
                           minIncrRel = 1.05, 
-                          showExplVar = FALSE, 
                           minExplVar = 0.6, 
-                          addVar = FALSE, 
                           verbose = TRUE, 
                           nSamples = 10, 
                           maxIter = 500, 
-                          xLimit = NULL){
+                          invLink = exp){
   
-  # checks
+  # Checks ------------------------------------------------------------------
+
   
   checkDT(inputDT, splineVarNames[splineVarNames != 'zone'])
   if (!any(c('gam', 'bam') %in% class(gamFit))) {
@@ -46,16 +67,15 @@ optNumbGroups <- function(inputDT,
   } 
   checkWholeNumb(list(nGroups, sampleSizeBin, nSamples, maxIter))
   
-  checkLength(list(showExplVar, minIncr, minIncrRel, addVar, sampleSizeBin), 1)
+  checkLength(list(minIncr, minIncrRel, sampleSizeBin), 1)
   checkNumVec(list(minIncr, minIncrRel))
   checkRanges(list(minIncr), list(c('>=', 0, '<=', 1)))
   
   checkRanges(list(minIncrRel), list(c('>=', 1)))
-  checkLogicVec(list(showExplVar, addVar))
-  checkEqualLength(list(splineVarNames, xLimit))
   
-  # end checks
-  
+  # End Checks --------------------------------------------------------------
+  # -------------------------------------------------------------------------
+
   splittingPoints <- list()
   length(splittingPoints) <- length(splineVarNames)
   names(splittingPoints) <- splineVarNames
@@ -64,10 +84,14 @@ optNumbGroups <- function(inputDT,
   length(explVarList) <- length(splineVarNames)
   names(explVarList) <- splineVarNames
   
+  # loop through all the spline variables
   for (iSpline in 1:length(splineVarNames)){
+    var2BeGrouped <- splineVarNames[[iSpline]]
     
     if (verbose) {
-      print(paste(paste(iSpline, '.: ', sep = ''), splineVarNames[iSpline], sep = ''))
+      cat(sprintf("%d : %s \n", 
+                  iSpline, 
+                  splineVarNames[iSpline]))
     }
     
     splittingPointsTemp <- list()
@@ -75,10 +99,11 @@ optNumbGroups <- function(inputDT,
     explVar <- rep(NA, length(nGroups))
     
     # running the code for each group 
-    #TODO: what is the purpose of this for-loop? 
+    # Calculating the Explain Variance for each group
     for(iGroup in nGroups){
       if(verbose){
-        print(paste('  Group ', iGroup, sep = ''))
+        cat(sprintf("\t Group %d \n", 
+                    iGroup))
       } 
       splits <- list()
       tempDT <- copy(inputDT)
@@ -98,63 +123,44 @@ optNumbGroups <- function(inputDT,
         names(splittingPoints)[iSpline] <- 'zone'
       } 
       else {
-        splittingPointsTemp[[iRun]] <- groupingVars(splineVarNames[iSpline], 
-                                                    iGroup, 
-                                                    gamFit, 
-                                                    tempDT, 
-                                                    splineEst, 
-                                                    sampleSizeBin = min(nrow(tempDT), sampleSizeBin), 
-                                                    nSamples = nSamples, 
-                                                    maxIter = maxIter, 
-                                                    showPlot = FALSE, 
-                                                    xLimit = xLimit[[iSpline]])
-        if(is.list(splittingPointsTemp[[iRun]])){
-          splits[[1]] <- splittingPointsTemp[[iRun]]$splits
-        } else {
-          splits[[1]] <- NA
-        }
-        names(splits) <- splineVarNames[iSpline]
-        groupedVarName <- paste(splineVarNames[iSpline], 'Grouped', sep = '')
+        
+        # data prep for the splits
+        inputSplit <- tempDT[as.integer(rownames(splineEst[[var2BeGrouped]])), ]
+        inputSplit <- inputSplit[, .SD, 
+                                 .SDcol = var2BeGrouped]
+        names(inputSplit) <- 'x'
+        inputSplit[, y := invLink(splineEst[[var2BeGrouped]])]
+        
+        # getting the splits 
+        splitsTree <- binningUnivSpline(inputDT = inputSplit, 
+                                        nGroups = iGroup, 
+                                        sampleSizeBin = sampleSizeBin, 
+                                        nSamples = nSamples, 
+                                        maxIter = maxIter)
+        
+        # save the splits 
+        splittingPointsTemp[[iRun]] <- splitsTree
+        
+        splits <- list(splittingPointsTemp[[iRun]])
       }
       
-      
-      # none are NA
-      if (all(!is.na(splits[[1]]))) {
+      # Construct the explained variance for the variable 
+      # only if none are NA
+      if (all(!is.na(splits))) {
+        names(splits) <- var2BeGrouped
+        explVariance <- calculateExplainedVariance(tempDT, 
+                                   splits = splits, 
+                                   splineEst = splineEst, 
+                                   varName = splineVarNames[iSpline], 
+                                   groupedVarName = sprintf("%sGrouped", splineVarNames[iSpline]))
         
-        transform2BinnedVar(tempDT, splits)
-        levs <- extractLevelDT(tempDT, groupedVarName)[[1]]
-        sdGroup <- rep(NA, length(levs))
-        nObs <- rep(NA, length(levs))
-        
-        for (iLev in 1:length(levs)){
-          workDT <- copy(tempDT)
-          #workDT <- extractData4ModelFit(workDT, splineVarNames[iSpline], NULL, NULL)
-          workDT <- workDT[as.integer(rownames(splineEst[[which(names(splineEst) == splineVarNames[iSpline])]])), ]
-          
-          if(splineVarNames[iSpline] == 'zone'){
-            workDT[, splineEst := splineEst[which(names(splineEst) %in% c('longitude', 'latitude'))][[1]]]
-          } else {
-            workDT[, splineEst := splineEst[which(names(splineEst) == splineVarNames[iSpline])]]
-          }
-          
-          splineEstSubset <- subsetDT(workDT, 
-                                      which(names(workDT) == groupedVarName), 
-                                      levs[iLev])$splineEst
-          
-          sdGroup[iLev] <- sd(splineEstSubset, na.rm = T)
-          nObs[iLev] <- length(splineEstSubset)
-        }
-        if(splineVarNames[iSpline] == 'zone'){
-          explVar[iRun] <- 1 - (sum(sdGroup*nObs)/sum(nObs))/sd(splineEst[which(names(splineEst) %in% c('longitude', 'latitude'))][[1]])
-        } else {
-          explVar[iRun] <- 1 - (sum(sdGroup*nObs)/sum(nObs))/sd(splineEst[which(names(splineEst) == splineVarNames[iSpline])][[1]])
-        }
+        explVar[iRun] <- explVariance
       }
       
       iRun <- iRun + 1
-    }
+    } # end of a group size calculation
     
-    if(sum(is.na(explVar)) == length(explVar)){
+    if (all(is.na(explVar))) {
       splittingPoints[[iSpline]] <- NA
       explVarList[[iSpline]] <- NA
       warning(sprintf("No valid splits for any of the tested groups (cfr. 'nGroups' argument) were found for the variable %s.", 
@@ -162,61 +168,30 @@ optNumbGroups <- function(inputDT,
     } else {
       
       selInds <- !is.na(explVar)
+      
       explVarSub <- explVar[selInds]
       nGroupsSub <- nGroups[selInds]
       
-      if(sum(selInds) > 1){
-        
-        selGroup <- which(explVarSub[2:length(nGroupsSub)] - explVarSub[1:(length(nGroupsSub) - 1)] < minIncr)
-        selGroupRel <- which(explVarSub[2:length(nGroupsSub)] < minIncrRel* explVarSub[1:(length(nGroupsSub) - 1)])
-        
-        if(length(selGroup) > 1) selGroup <- max(selGroup)
-        if(length(selGroupRel) > 1) selGroupRel <- max(selGroupRel)
-        if(length(selGroup) == 0) selGroup <- length(nGroupsSub)
-        if(length(selGroupRel) == 0) selGroupRel <- length(nGroupsSub)
-        splittingPoints[[iSpline]] <- splittingPointsTemp[[which(selInds)[min(selGroup, selGroupRel)]]]
-        explVarList[[iSpline]] <- explVarSub[min(selGroup, selGroupRel)]
-        if(explVarSub[min(selGroup, selGroupRel)] < minExplVar) {
-          message <- sprintf("Even the optimal grouping for the variable %s did not exceed the minimal value for explained variance as set by the 'minExplVar' argument \n Please increase the number of possible groups, as indicated by the 'nGroups' argument.", 
-                             splineVarNames[iSpline])
-                             
-          warning(message)
-        }
-      } else {
-        splittingPoints[[iSpline]] <- splittingPointsTemp[[which(selInds)]]
-        explVarList[[iSpline]] <- explVarSub[selInds]
-        if(explVar[selInds] < minExplVar){
-          message <- sprintf("Even the optimal grouping for the variable %s did not exceed the minimal value for explained variance as set by the 'minExplVar' argument \n Please increase the number of possible groups, as indicated by the 'nGroups' argument.", 
-                             splineVarNames[iSpline])
-          warning(message)
-        } 
-      }
-    }
-    if (!is.null(plotDir)){
-      groupingVars(splineVarNames[iSpline], 
-                   length(unlist(splittingPoints[[iSpline]])) + 1, 
-                   gamFit, 
-                   inputDT, 
-                   splineEst, 
-                   plotDir = plotDir, 
-                   plotName = paste(splineVarNames[iSpline], 'Grouped', sep = ''), 
-                   sampleSizeBin = min(nrow(inputDT), sampleSizeBin), 
-                   nSamples = nSamples, 
-                   maxIter = maxIter, 
-                   showPlot = FALSE, 
-                   xLimit = xLimit[[iSpline]])
+      bestExplainedVariance <- getBestnGroups(explVar[selInds], 
+                                              nGroups[selInds], 
+                                              splittingPointsTemp[selInds])
       
-    } 
-  }
+      splittingPoints[[iSpline]] <- bestExplainedVariance$SplittingPoints
+      explVarList[[iSpline]] <- bestExplainedVariance$ExplainedVariance
+      
+      if (bestExplainedVariance$ExplainedVariance < minExplVar) {
+        warning(sprintf("Even the optimal grouping for the variable %s 
+                           did not exceed the minimal value for explained variance, 
+                           as set by the 'minExplVar' argument \n 
+                           Please increase the number of possible groups, 
+                           as indicated by the 'nGroups' argument.",
+                        splineVarNames[iSpline]))
+      }
+    } # end of explained variance checks
+  } # end of spline calculations
   
-  if(addVar){
-    transform2BinnedVar(inputDT, splittingPoints)
-  }
-  
-  if(showExplVar){
-    return(list(splits = splittingPoints, explVar = explVarList))
-  } else {
-    return(list(splits = splittingPoints))
-  }
+  return(list(splits = splittingPoints, 
+              explVar = explVarList))
+
 }
 
