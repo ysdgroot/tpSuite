@@ -15,7 +15,6 @@ calculateExplainedVariance <- function(inputDT,
                                        varName, 
                                        groupedVarName = sprintf("%sGrouped", varName)){
     
-    transform2BinnedVar(inputDT, splits)
     levs <- extractLevelDT(inputDT, groupedVarName)[[1]]
     sdGroup <- rep(NA, length(levs))
     nObs <- rep(NA, length(levs))
@@ -25,12 +24,8 @@ calculateExplainedVariance <- function(inputDT,
       
       workDT <- workDT[as.integer(rownames(splineEst[[varName]])), ]
       
-      if (varName == 'zone') {
-        workDT[, splineEst := splineEst[which(names(splineEst) %in% c('longitude', 'latitude'))][[1]]]
-      } else {
-        workDT[, splineEst := splineEst[varName]]
-      }
-      
+      workDT[, splineEst := splineEst[varName]]
+
       # select only the results of the specified variable
       splineEstSubset <- subsetDT(workDT, 
                                   which(names(workDT) == groupedVarName), 
@@ -39,12 +34,8 @@ calculateExplainedVariance <- function(inputDT,
       sdGroup[iLev] <- sd(splineEstSubset, na.rm = T)
       nObs[iLev] <- length(splineEstSubset)
     }
-    
-    if (varName == 'zone') {
-      explVar <- 1 - (sum(sdGroup*nObs)/sum(nObs))/sd(splineEst[which(names(splineEst) %in% c('longitude', 'latitude'))][[1]])
-    } else {
-      explVar <- 1 - (sum(sdGroup*nObs)/sum(nObs))/sd(splineEst[[varName]])
-    }
-  
+
+    explVar <- 1 - (sum(sdGroup*nObs)/sum(nObs))/sd(splineEst[[varName]])
+
     return(explVar)
 }
