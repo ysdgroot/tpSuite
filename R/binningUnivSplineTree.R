@@ -16,7 +16,7 @@
 #'
 #' @returns list of the final break points 
 #' @export
-binningUnivSpline <- function(inputDT, 
+binningUnivSplineTree <- function(inputDT, 
                               nGroups,
                               sampleSizeBin = min(nrow(inputDT), 50000), 
                               nSamples = 10, 
