@@ -13,7 +13,7 @@
 #' without any space or character in between. 
 #' Note that the grouping is always performed in the following manner: 
 #' if the 'split' argument supplies the splitting points a, b, and c, then the continuous variable is split up in the following intervals ]-infinity, a[, [a, b[ and [b, +infinity[.
-#' @examples
+#' @export
 transform2BinnedVar <- function(inputDT, 
                                 splits){
   # checks

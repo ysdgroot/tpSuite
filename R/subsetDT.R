@@ -19,7 +19,7 @@
 #' subsetDT(inputDT, 1, 10)
 #' subsetDT(inputDT, 2, 'A')
 #' subsetDT(inputDT, 1, 'A')
-
+#' @export
 subsetDT <- function(inputDT, 
                      colNbr, 
                      rowValue = NULL, 

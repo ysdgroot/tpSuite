@@ -1,3 +1,4 @@
+#' @export
 changeLevelNamesDT <- function(inputDT, 
                                categoricalVar,
                                oldLevelName, 

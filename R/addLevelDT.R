@@ -1,5 +1,6 @@
 #TODO: document
 #TODO function is not even used...
+#' @export
 addLevelDT <- function(inputDT, 
                        catVar, 
                        newLevel){

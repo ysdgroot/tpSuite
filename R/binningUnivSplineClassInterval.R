@@ -16,7 +16,6 @@
 #' 
 #' @importFrom cluster pam
 #'
-#' @examples
 binningUnivSplineClassInterval <-  function(splineEst, 
                                             nGroups = NULL, 
                                             sampleSizeBin = 50000, 
