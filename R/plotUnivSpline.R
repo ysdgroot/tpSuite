@@ -9,7 +9,7 @@
 #' @param colorRibbon colorname or hexcode for the ribbon
 #' @param lineWidth linewidth for the spline
 #' @param showPlot logical, if the plot should be shown or not
-#' @param nSamples numeric, number of samples to be used 
+#' @param nSamples numeric, number of points to be used to extract spline
 #' @param plotDir path location for the directory
 #' @param plotName name of the plot, will be saved at location `plotDir`
 #' @param pdf2 logical, if the plot should be saved as a pdf
@@ -20,15 +20,15 @@
 #' @returns ggplot object of the spline
 #' @export
 plotUnivSpline <- function(gamFit, 
-                           inputDT, 
                            selectedVar, 
-                           simultaneousCI = FALSE, 
+                           min_max_values, 
+                           simultaneousCI = FALSE,
+                           nSamples = 1000, 
                            transparence = 0.5, 
                            colorLine = 'black', 
                            colorRibbon = 'steelblue', 
                            lineWidth = 1.2, 
                            showPlot = TRUE, 
-                           nSamples = 1000, 
                            plotDir = NULL, 
                            plotName = NULL, 
                            pdf2 = TRUE, 
@@ -38,21 +38,7 @@ plotUnivSpline <- function(gamFit,
   # checks
   
   checkPlotDirAndName(plotDir, plotName)
-  
-  if (sum(class(gamFit) %in% 'gam') == 0) {
-    stop('The "gamFit" argument should be an output object of the mgcv::gam function.')
-  } 
-  if (!is.data.table(inputDT)) {
-    stop('The "inputDT" argument should be a data.table object.')
-  }
-  if (length(selectedVar) < 1) {
-    stop('The "selectedVar" argument should be a character vector consisting of column names of the "inputDT" argument.')
-  }
-  if (length(selectedVar) > 1){
-    stop('The "selectedVar" argument should only 1 variable to plot')
-  }
-  
-  
+
   if (!is.null(xLimits)) {
     if (length(xLimits) != 2 | !is.numeric(xLimits)) {
       stop('The "xLimits" argument should be a numeric vector of length 2.')
@@ -64,103 +50,12 @@ plotUnivSpline <- function(gamFit,
     } 
   }
   
-  if (!(selectedVar %in% attr(gamFit$terms, 'term.labels'))) {
-    stop(sprintf("%s is not a model variable of 'gamFit' with smoothed results", 
-                 selectedVar))
-  }
-  
-  
-  
-  # end checks
-  
-  includedVars <- attr(gamFit$terms, 'dataClasses')
-  numericVarNames <- names(includedVars)[which(includedVars == 'numeric')]
-  numericVarNames <- numericVarNames[!grepl('offset', numericVarNames)]
-  categoricalVarNames <- names(gamFit$xlevels)
-  
-  referenceClass <- laply(gamFit$xlevels, function(xx) xx[1])
-  refDF <- data.frame(t(c(1, rep(0, length(numericVarNames)), referenceClass)))
-  names(refDF) <- c('exposure', numericVarNames, categoricalVarNames)
-  
-  coVarMatrix <- vcov(gamFit)
-  
-  newDataVar <- seq(min(inputDT[[which(names(inputDT) == selectedVar)]], 
-                        na.rm = TRUE), 
-                    max(inputDT[[which(names(inputDT) == selectedVar)]], 
-                        na.rm = TRUE), 
-                    length = nSamples)
-  
-  newData <- data.frame(refDF, 
-                        temp = rep(-1, length(newDataVar)))
-  newData <- newData[,-ncol(newData)]
-  newData[, which(names(refDF) == selectedVar)] <- newDataVar
-  newData <- as.data.table(newData)
-  
-  categoricalCols <- which(names(newData) %in% names(gamFit$xlevels))
-  
-  numericCols <- 1:ncol(newData)
-  numericCols <- numericCols[-categoricalCols]
-  names(newData)[numericCols]
-  
-  for(iCol in numericCols){
-    newData[[iCol]] <- as.numeric(newData[[iCol]])
-  }
-  
-  if(simultaneousCI == TRUE){
-    
-    predictions <- predict(gamFit, 
-                           newData, 
-                           se.fit = TRUE)
-    fitSE <- predictions$se.fit
-    
-    N <- 10000
-    normalSamples <- mgcv::rmvn(N,
-                                mu = rep(0, nrow(coVarMatrix)), 
-                                V = coVarMatrix)
-    Cg <- predict(gamFit, 
-                  newData, 
-                  type = "lpmatrix")
-    simulatedDiff <- Cg %*% t(normalSamples)
-    absoluteDiff <- abs(sweep(simulatedDiff, 1, fitSE, FUN = "/"))
-    maxDiff <- apply(absoluteDiff, 2L, max)
-    criticalValue <- quantile(maxDiff, 
-                              prob = 0.95, 
-                              type = 8)
-    
-    upperBound <- splineEst + criticalValue*stError
-    lowerBound <- splineEst - criticalValue*stError
-    
-  } else {
-    
-    predictions <- predict(gamFit, 
-                           newData, 
-                           type = "terms", 
-                           se.fit = TRUE)
-    fitSE <- predictions$se.fit
-    
-    selectedVarSpline <- paste(paste('s(', selectedVar, sep = ''), ')', sep = '')
-    selectedCol <- grep(selectedVarSpline, 
-                        colnames(fitSE), 
-                        fixed = TRUE)
-    stError <- fitSE[, selectedCol]
-    
-    Xp <- predict(gamFit, 
-                  newdata = newData, 
-                  type = "lpmatrix")
-    
-    selectedCol <- grep(selectedVarSpline, 
-                        colnames(Xp), 
-                        fixed = TRUE)
-    splineEst <- Xp[, selectedCol] %*% gamFit$coefficients[selectedCol]
-    
-    upperBound <- splineEst + 2*stError
-    lowerBound <- splineEst - 2*stError
-    
-  }
-  ggplotData <- as.data.table(data.frame(xVar = newDataVar, 
-                                         yVar = splineEst, 
-                                         upperBound = upperBound, 
-                                         lowerBound = lowerBound))
+  # get the spline extraction with the CI of the spline 
+  ggplotData <- splineExtract(gamFit = gamFit, 
+                              selectedVar = selectedVar, 
+                              min_max_values = min_max_values, 
+                              nSamples = nSamples, 
+                              simultaneousCI = simultaneousCI)
   
   ggplot_p <- ggplot(ggplotData, 
                      aes(x = xVar, 
