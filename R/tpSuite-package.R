@@ -9,7 +9,7 @@
 #' @import rpart
 #' @import ggplot2
 #' @import cluster
-#' @import dplyr
+#' @import plyr
 #' @import classInt
 #' @import data.table
 #'  
