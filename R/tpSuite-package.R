@@ -12,8 +12,6 @@
 #' @import plyr
 #' @import classInt
 #' @import data.table
-#'  
-#' @import rgdal
 ## usethis namespace: end
 NULL
 

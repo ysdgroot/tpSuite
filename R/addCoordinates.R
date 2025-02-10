@@ -7,7 +7,6 @@
 #' @param inputDT data.table object containing the data of interest. This is an obligatory argument, without default value.
 #' @param dirShape Character vector of length 1 indicating directory where all the shape files are stored. This is an obligatory argument, with NULL as default value.
 #' @return The longitude and latitude coordinates are added as 2 separate columns to the 'inputDT' argument. Note that no output object is thrown by the 'addCoordinates' function, the 2 columns are directly added to the object that was passed to the 'inputDT' argument.
-#' @export
 #' @examples
 #'nSamples <- 50000
 #'observedValues <- rpois(nSamples, lambda = 1)

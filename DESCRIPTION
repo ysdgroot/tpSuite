@@ -1,7 +1,7 @@
 Package: tpSuite
 Type: Package
 Title: Technical Pricing Suite
-Version: 0.2.0
+Version: 0.2.1
 Author: Allianz Benelux
 Maintainer: Robin Van Oirbeek <robin.van_oirbeek@allianz.be>
 Description: A collection of functions to visualize spatial data, spline effects of GAM models and how to perform binning of categorical variables for GLM models

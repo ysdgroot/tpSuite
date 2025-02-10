@@ -15,7 +15,6 @@
 #' # 'randomPick' argument and the 'randomColorPick' function.
 #' inputCyclingFunction <- plottingSpatialEffect(inputDT, predictions, predAsFact = TRUE, randomPick = TRUE)
 #' randomColorPick(inputCyclingFunction, , TRUE)
-#' @export
 randomColorPick <- function(plottingSpatialEffectCyclingOutputObject, predFactColors = NULL, printColourNames = FALSE, noSaving = FALSE){
   
   checkLogicVec(list(printColourNames, noSaving))

@@ -27,7 +27,6 @@
 #'
 #' predictions <- sample(LETTERS[1:10], nrow(postalCode), replace = TRUE)
 #' plottingSpatialEffect(inputDT, predictions, predAsFact = TRUE, dirShape = dirShape)
-#' @export
 plottingSpatialEffect <- function(inputDT, predictions = NULL, plotTitle = '', dirShape = NULL, plotDir = NULL, plotName = NULL, pdf2 = TRUE, lowColor = NULL, highColor = NULL, predAsFact = FALSE, predFactColors = NULL, randomPick = FALSE){
   
   checkDT(inputDT, c('exposure', 'postalCode'))

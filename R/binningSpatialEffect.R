@@ -1,5 +1,7 @@
 #TODO: document
-#' @export
+#' @description
+#' binning for spatial effects
+#' 
 binningSpatialEffect <- function(inputDT, 
                                  gamFit, 
                                  nGroups = 5, 
